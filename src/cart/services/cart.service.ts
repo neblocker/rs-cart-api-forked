@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-
+import { Client } from 'pg';
 import { v4 } from 'uuid';
 
 import { Cart } from '../models';
@@ -8,8 +8,15 @@ import { Cart } from '../models';
 export class CartService {
   private userCarts: Record<string, Cart> = {};
 
-  findByUserId(userId: string): Cart {
-    return this.userCarts[ userId ];
+  constructor(private readonly client: Client) {}
+
+  findByUserId(userId: string): any {
+    const data = this.client.query(
+      'select c.id as cart_id, pr from carts c inner join cart_items ci on (c.id = ci.cart_id) where c.user_id = ?',
+      [userId],
+    );
+
+    return data;
   }
 
   createByUserId(userId: string) {
@@ -19,7 +26,7 @@ export class CartService {
       items: [],
     };
 
-    this.userCarts[ userId ] = userCart;
+    this.userCarts[userId] = userCart;
 
     return userCart;
   }
@@ -40,16 +47,15 @@ export class CartService {
     const updatedCart = {
       id,
       ...rest,
-      items: [ ...items ],
-    }
+      items: [...items],
+    };
 
-    this.userCarts[ userId ] = { ...updatedCart };
+    this.userCarts[userId] = { ...updatedCart };
 
     return { ...updatedCart };
   }
 
   removeByUserId(userId): void {
-    this.userCarts[ userId ] = null;
+    this.userCarts[userId] = null;
   }
-
 }
